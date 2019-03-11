@@ -32,12 +32,19 @@ LABEL summary="$SUMMARY" \
 EXPOSE 8080
 EXPOSE 8443
 
+ENV TEST=3
+
 RUN yum install -y yum-utils && \
     yum install -y centos-release-scl epel-release && \
-    INSTALL_PKGS="gettext hostname nss_wrapper bind-utils httpd24 httpd24-mod_ssl httpd24-mod_auth_mellon" && \
+    INSTALL_PKGS="gettext hostname nss_wrapper bind-utils httpd24 httpd24-mod_ssl httpd24-mod_auth_mellon mod_auth_openidc" && \
     yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
+
+RUN ls -la /etc/
+
+RUN mv /etc/httpd /tmp/httpd
+
 
 ENV HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
     HTTPD_APP_ROOT=${APP_ROOT} \
@@ -63,6 +70,13 @@ COPY ./root /
 
 # Reset permissions of filesystem to default values
 RUN /usr/libexec/httpd-prepare && rpm-file-permissions
+
+RUN cp -a /tmp/httpd/conf.modules.d/10-auth_openidc.conf /etc/httpd/conf.modules.d
+RUN cp -a /usr/lib64/httpd/modules/mod_auth_openidc.so /opt/rh/httpd24/root/usr/lib64/httpd/modules/
+
+ENV TEST=3
+
+COPY oauth_custom_config.conf /etc/httpd/conf.d/
 
 USER 1001
 
